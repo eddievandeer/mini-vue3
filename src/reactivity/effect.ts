@@ -4,6 +4,11 @@ const targetMap = new WeakMap<any, KeyToDepMap>()
 
 export interface ReactiveEffect<T = any> {
   (): T
+  _isEffect: true
+  id: number
+  active: boolean
+  raw: () => T
+  deps: Array<Dep>
 }
 
 let activeEffect: ReactiveEffect
@@ -15,13 +20,34 @@ export function effect<T>(fn: () => T) {
   return effect
 }
 
+let uid = 0
+
 export function createReactiveEffect<T = any>(fn: () => T): ReactiveEffect<T> {
   const effect = function reactiveEffect(): unknown {
+    cleanup(effect)
     activeEffect = effect
     return fn()
   } as ReactiveEffect
 
+  effect._isEffect = true
+  effect.id = uid++
+  effect.active = true
+  effect.raw = fn
+  effect.deps = []
+
   return effect
+}
+
+function cleanup(effect: ReactiveEffect) {
+  const { deps } = effect
+
+  if (deps.length) {
+    for (let i = 0; i < deps.length; i++) {
+      deps[i].delete(effect)
+    }
+
+    deps.length = 0
+  }
 }
 
 export function track(target: any, key: string | symbol) {
@@ -38,6 +64,7 @@ export function track(target: any, key: string | symbol) {
 
   if (!deps.has(activeEffect)) {
     deps.add(activeEffect)
+    activeEffect.deps.push(deps)
   }
 }
 
@@ -52,6 +79,6 @@ export function trigger(target: any, key: string | symbol) {
     effect()
   }
 
-  const effects = depsMap.get(key)
+  const effects = new Set(depsMap.get(key))
   effects && effects.forEach(run)
 }
