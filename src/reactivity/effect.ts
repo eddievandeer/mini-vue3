@@ -12,6 +12,7 @@ export interface ReactiveEffect<T = any> {
 }
 
 let activeEffect: ReactiveEffect
+const effectStack: ReactiveEffect[] = []
 
 export function effect<T>(fn: () => T) {
   const effect = createReactiveEffect(fn)
@@ -24,9 +25,15 @@ let uid = 0
 
 export function createReactiveEffect<T = any>(fn: () => T): ReactiveEffect<T> {
   const effect = function reactiveEffect(): unknown {
-    cleanup(effect)
-    activeEffect = effect
-    return fn()
+    try {
+      cleanup(effect)
+      effectStack.push(effect)
+      activeEffect = effect
+      return fn()
+    } finally {
+      effectStack.pop()
+      activeEffect = effectStack[effectStack.length - 1]
+    }
   } as ReactiveEffect
 
   effect._isEffect = true

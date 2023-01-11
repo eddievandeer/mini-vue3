@@ -67,4 +67,28 @@ describe("effect", () => {
     obj.text = "World";
     expect(effectFunction).toBeCalledTimes(2);
   });
+
+  it("nested effect function", () => {
+    const obj = reactive({
+      foo: 1,
+      bar: 2
+    });
+
+    let outer
+    let inner
+
+    effect(() => {
+      effect(() => {
+        inner = obj.bar
+      })
+      outer = obj.foo
+    })
+
+    expect(outer).toBe(1)
+    expect(inner).toBe(2)
+
+    obj.foo = 3
+    expect(outer).toBe(3)
+    expect(inner).toBe(2)
+  })
 });
