@@ -76,16 +76,30 @@ export function track(target: any, key: string | symbol) {
 }
 
 export function trigger(target: any, key: string | symbol) {
-  let depsMap = targetMap.get(target)
+  const depsMap = targetMap.get(target)
   if (!depsMap) {
     // never been tracked
     return
   }
 
+  const effects = new Set<ReactiveEffect>()
+
+  // Do not add active effect to the set of effects to run
+  const add = (effectsToAdd: Set<ReactiveEffect> | undefined) => {
+    if (effectsToAdd) {
+      effectsToAdd.forEach((effect) => {
+        if (effect !== activeEffect) {
+          effects.add(effect)
+        }
+      })
+    }
+  }
+
+  add(depsMap.get(key))
+
   const run = (effect: ReactiveEffect) => {
     effect()
   }
 
-  const effects = new Set(depsMap.get(key))
   effects && effects.forEach(run)
 }
