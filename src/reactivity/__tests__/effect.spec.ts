@@ -47,11 +47,9 @@ describe("effect", () => {
     });
 
     let valueToShow;
-    let called = 0;
 
     const effectFunction = jest.fn(() => {
       valueToShow = obj.ok ? obj.text : "not";
-      called++;
     });
 
     effect(effectFunction);
