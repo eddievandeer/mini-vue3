@@ -1,4 +1,4 @@
-import { effect } from '../effect'
+import { effect, ReactiveEffect } from '../effect'
 import { reactive } from '../reactive'
 
 describe('effect', () => {
@@ -107,5 +107,49 @@ describe('effect', () => {
 
     expect(obj.foo).toBe(2)
     expect(calledTimes).toBe(1)
+  })
+
+  it('scheduler', () => {
+    const obj = reactive({
+      foo: 1,
+    })
+    const jobQueue = new Set<ReactiveEffect>()
+    const p = Promise.resolve()
+
+    let isFlushing = false
+
+    let result
+
+    const flushJob = () => {
+      if (isFlushing) return
+
+      isFlushing = true
+      p.then(() => {
+        jobQueue.forEach((job) => job())
+      }).finally(() => {
+        isFlushing = false
+      })
+    }
+
+    effect(
+      () => {
+        result = obj.foo
+      },
+      {
+        scheduler: (fn) => {
+          jobQueue.add(fn)
+          flushJob()
+        },
+      }
+    )
+
+    // 在一个事件循环内只会执行一次 effect 函数
+    obj.foo++
+    obj.foo++
+    expect(result).toBe(1)
+
+    setTimeout(() => {
+      expect(result).toBe(3)
+    })
   })
 })

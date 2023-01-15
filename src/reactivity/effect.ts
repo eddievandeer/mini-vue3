@@ -1,3 +1,5 @@
+import { EMPTY_OBJ } from '../shared/src'
+
 type Dep = Set<ReactiveEffect>
 type KeyToDepMap = Map<any, Dep>
 const targetMap = new WeakMap<any, KeyToDepMap>()
@@ -9,13 +11,21 @@ export interface ReactiveEffect<T = any> {
   active: boolean
   raw: () => T
   deps: Array<Dep>
+  options: ReactiveEffectOptions
+}
+
+export interface ReactiveEffectOptions {
+  scheduler?: (job: ReactiveEffect) => void
 }
 
 let activeEffect: ReactiveEffect
 const effectStack: ReactiveEffect[] = []
 
-export function effect<T>(fn: () => T) {
-  const effect = createReactiveEffect(fn)
+export function effect<T>(
+  fn: () => T,
+  options: ReactiveEffectOptions = EMPTY_OBJ
+) {
+  const effect = createReactiveEffect(fn, options)
 
   effect()
   return effect
@@ -23,7 +33,10 @@ export function effect<T>(fn: () => T) {
 
 let uid = 0
 
-export function createReactiveEffect<T = any>(fn: () => T): ReactiveEffect<T> {
+export function createReactiveEffect<T = any>(
+  fn: () => T,
+  options: ReactiveEffectOptions
+): ReactiveEffect<T> {
   const effect = function reactiveEffect(): unknown {
     try {
       cleanup(effect)
@@ -41,6 +54,7 @@ export function createReactiveEffect<T = any>(fn: () => T): ReactiveEffect<T> {
   effect.active = true
   effect.raw = fn
   effect.deps = []
+  effect.options = options
 
   return effect
 }
@@ -98,7 +112,11 @@ export function trigger(target: any, key: string | symbol) {
   add(depsMap.get(key))
 
   const run = (effect: ReactiveEffect) => {
-    effect()
+    if (effect.options.scheduler) {
+      effect.options.scheduler(effect)
+    } else {
+      effect()
+    }
   }
 
   effects && effects.forEach(run)
