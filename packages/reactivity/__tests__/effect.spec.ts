@@ -118,8 +118,7 @@ describe('effect', () => {
 
     let isFlushing = false
 
-    let result
-
+    let result = 0
     const flushJob = () => {
       if (isFlushing) return
 

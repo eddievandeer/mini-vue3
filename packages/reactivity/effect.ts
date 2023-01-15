@@ -1,4 +1,4 @@
-import { EMPTY_OBJ } from '../shared/src'
+import { EMPTY_OBJ } from '@mini-vue3/shared'
 
 type Dep = Set<ReactiveEffect>
 type KeyToDepMap = Map<any, Dep>
