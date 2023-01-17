@@ -15,6 +15,7 @@ export interface ReactiveEffect<T = any> {
 }
 
 export interface ReactiveEffectOptions {
+  lazy?: boolean
   scheduler?: (job: ReactiveEffect) => void
 }
 
@@ -27,7 +28,10 @@ export function effect<T>(
 ) {
   const effect = createReactiveEffect(fn, options)
 
-  effect()
+  if(!options.lazy) {
+    effect()
+  }
+
   return effect
 }
 
